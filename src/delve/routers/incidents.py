@@ -1,15 +1,15 @@
 import logging
 
-from delve.agents.triage_service import run_triage
-from delve.models.incident import IncidentStatus
-
-logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from delve.agents.investigation_service import run_investigation
+from delve.agents.triage_service import run_triage
 from delve.db import SessionLocal
-from delve.models.incident import Incident
+from delve.models.incident import Incident, IncidentStatus
 from delve.schemas.incident import IncidentCreate, IncidentRead
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
@@ -20,6 +20,7 @@ def get_db():
         yield db
     finally:
         db.close()
+
 
 @router.post("", response_model=IncidentRead, status_code=201)
 async def create_incident(payload: IncidentCreate, db: Session = Depends(get_db)):
@@ -39,6 +40,31 @@ async def create_incident(payload: IncidentCreate, db: Session = Depends(get_db)
         logger.exception("Triage failed for incident %s", incident.id)
 
     return incident
+
+
+@router.post("/{incident_id}/investigate", response_model=IncidentRead)
+async def investigate_incident(incident_id: str, db: Session = Depends(get_db)):
+    incident = db.query(Incident).filter(Incident.id == incident_id).first()
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    incident_text = f"Title: {incident.title}\nDescription: {incident.description}"
+    try:
+        results = await run_investigation(incident_text)
+        incident.investigation_findings = {
+            "log_findings": results["log_findings"],
+            "metrics_findings": results["metrics_findings"],
+            "deployment_findings": results["deployment_findings"],
+        }
+        incident.root_cause_analysis = results["root_cause_analysis"]
+        incident.status = IncidentStatus.HYPOTHESIS_FORMED
+        db.commit()
+        db.refresh(incident)
+    except Exception:
+        logger.exception("Investigation failed for incident %s", incident.id)
+
+    return incident
+
 
 @router.get("", response_model=list[IncidentRead])
 def list_incidents(db: Session = Depends(get_db)):

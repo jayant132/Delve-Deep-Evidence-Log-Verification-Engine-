@@ -20,3 +20,5 @@ class IncidentRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     triage_assessment: dict | None = None
+    investigation_findings: dict | None = None
+    root_cause_analysis: dict | None = None

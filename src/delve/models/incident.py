@@ -31,9 +31,13 @@ class Incident(Base):
     
     )
     triage_assessment: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    investigation_findings: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    root_cause_analysis: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    investigation_findings: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    root_cause_analysis: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
