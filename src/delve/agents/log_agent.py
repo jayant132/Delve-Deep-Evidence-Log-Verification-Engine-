@@ -21,7 +21,7 @@ plain-text summary (not JSON) of what you found.
 
 _formatter = LlmAgent(
     name="log_formatter",
-    model=LiteLlm(model="groq/openai/gpt-oss-120b", include_reasoning=False),
+    model=LiteLlm(model="groq/openai/gpt-oss-20b", include_reasoning=False),
     instruction="""You will be given a previous agent's log investigation 
 notes. Convert them into ONLY a single JSON object — no markdown, no code 
 fences, no extra text — matching exactly:

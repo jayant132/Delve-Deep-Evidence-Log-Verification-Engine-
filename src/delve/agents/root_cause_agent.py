@@ -75,7 +75,7 @@ async def wait_for_rate_limit_window(callback_context):
 
 root_cause_agent = LlmAgent(
     name="root_cause_agent",
-    model=LiteLlm(model="groq/openai/gpt-oss-20b", num_retries=5, include_reasoning=False),
+    model=LiteLlm(model="groq/openai/gpt-oss-120b", num_retries=5, include_reasoning=False),
     instruction=ROOT_CAUSE_AGENT_INSTRUCTION,
     output_schema=RootCauseAnalysis,
     output_key="root_cause_analysis",

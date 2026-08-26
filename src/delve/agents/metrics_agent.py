@@ -20,7 +20,7 @@ the tool returns, write a short plain-text summary (not JSON) of the trend.
 
 _formatter = LlmAgent(
     name="metrics_formatter",
-    model=LiteLlm(model="groq/openai/gpt-oss-120b", include_reasoning=False),
+    model=LiteLlm(model="groq/openai/gpt-oss-20b", include_reasoning=False),
     instruction="""You will be given a previous agent's metrics investigation 
 notes. Convert them into ONLY a single JSON object — no markdown, no code 
 fences, no extra text — matching exactly:

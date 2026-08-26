@@ -21,7 +21,7 @@ hours_back=24. After the tool returns, write a short plain-text summary
 
 _formatter = LlmAgent(
     name="deployment_formatter",
-    model=LiteLlm(model="groq/openai/gpt-oss-120b", include_reasoning=False),
+    model=LiteLlm(model="groq/openai/gpt-oss-20b", include_reasoning=False),
     instruction="""You will be given a previous agent's deployment 
 investigation notes. Convert them into ONLY a single JSON object — no 
 markdown, no code fences, no extra text — matching exactly:

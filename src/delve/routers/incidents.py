@@ -6,7 +6,9 @@ from sqlalchemy.orm import Session
 from delve.agents.investigation_service import run_investigation
 from delve.agents.triage_service import run_triage
 from delve.db import SessionLocal
+from delve.models.evidence import Evidence
 from delve.models.incident import Incident, IncidentStatus
+from delve.schemas.evidence import EvidenceRead
 from delve.schemas.incident import IncidentCreate, IncidentRead
 
 logger = logging.getLogger(__name__)
@@ -57,6 +59,20 @@ async def investigate_incident(incident_id: str, db: Session = Depends(get_db)):
             "deployment_findings": results["deployment_findings"],
         }
         incident.root_cause_analysis = results["root_cause_analysis"]
+
+        for agent_key in ("log_findings", "metrics_findings", "deployment_findings"):
+            finding = results[agent_key]
+            if not finding:
+                continue
+            service = finding.get("service_investigated", "unknown")
+            for fact in finding.get("observed_data", []):
+                db.add(Evidence(
+                    incident_id=incident.id,
+                    source_agent=agent_key.replace("_findings", "_agent"),
+                    service=service,
+                    content=fact,
+                ))
+
         incident.status = IncidentStatus.HYPOTHESIS_FORMED
         db.commit()
         db.refresh(incident)
@@ -77,3 +93,16 @@ def get_incident(incident_id: str, db: Session = Depends(get_db)):
     if incident is None:
         raise HTTPException(status_code=404, detail="Incident not found")
     return incident
+
+
+@router.get("/{incident_id}/evidence", response_model=list[EvidenceRead])
+def list_evidence(incident_id: str, db: Session = Depends(get_db)):
+    incident = db.query(Incident).filter(Incident.id == incident_id).first()
+    if incident is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return (
+        db.query(Evidence)
+        .filter(Evidence.incident_id == incident_id)
+        .order_by(Evidence.created_at)
+        .all()
+    )
