@@ -13,11 +13,12 @@ FINDING_KEYS = (
     "log_findings",
     "metrics_findings",
     "deployment_findings",
+    "historical_findings",
     "root_cause_analysis",
 )
 
-MAX_ATTEMPTS = 3
-RETRY_WAIT_SECONDS = 60
+MAX_ATTEMPTS = 5
+RETRY_WAIT_SECONDS = 70
 
 
 def _parse_state_value(raw):

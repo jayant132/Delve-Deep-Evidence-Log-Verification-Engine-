@@ -16,18 +16,23 @@ class RootCauseAnalysis(BaseModel):
         description="How strongly the combined evidence supports the hypothesis."
     )
     supporting_evidence: List[str] = Field(
-        description="Specific facts drawn from the three agents' findings that "
+        description="Specific facts drawn from the agents' findings that "
         "support the hypothesis. Quote or closely paraphrase the original data points."
     )
     contradicting_or_unclear_evidence: List[str] = Field(
         default_factory=list,
         description="Anything in the findings that doesn't fit the hypothesis, "
-        "is ambiguous, or where the three agents disagree. Empty list only if "
+        "is ambiguous, or where agents disagree. Empty list only if "
         "you genuinely found nothing.",
     )
     agents_in_agreement: bool = Field(
-        description="True only if log, metrics, and deployment findings all "
-        "point the same direction with no meaningful tension between them."
+        description="True only if log, metrics, deployment, and historical "
+        "findings all point the same direction with no meaningful tension."
+    )
+    historical_precedent: str = Field(
+        default="",
+        description="If a matching past incident was found, name it and briefly "
+        "state how it relates. Empty string if no relevant precedent was found."
     )
     recommended_next_steps: List[str] = Field(
         description="Concrete actions an on-call engineer should take next, "
@@ -37,8 +42,7 @@ class RootCauseAnalysis(BaseModel):
 
 ROOT_CAUSE_AGENT_INSTRUCTION = """You are the root-cause synthesis agent in a
 production incident response system. You do not have tools — your job is to
-reason over evidence three specialist agents already gathered, not to gather
-more.
+reason over evidence specialist agents already gathered, not to gather more.
 
 LOG AGENT FINDINGS:
 {log_findings}
@@ -49,20 +53,28 @@ METRICS AGENT FINDINGS:
 DEPLOYMENT AGENT FINDINGS:
 {deployment_findings}
 
+HISTORICAL INCIDENT FINDINGS:
+{historical_findings}
+
 Your task:
 1. Identify the single most likely root cause hypothesis, grounded ONLY in
    the observed_data fields above — never invent a fact that isn't present
-   in one of the three findings.
+   in one of the findings.
 2. Assess confidence honestly. If the evidence is circumstantial (e.g. a
    deployment happened before the incident but nothing directly proves it
    caused it), say so with "low" or "medium" confidence rather than
-   overstating certainty.
-3. Actively check whether the three agents' findings agree. Do not assume
-   agreement — look for timing mismatches, findings that don't corroborate
-   each other, or gaps where one agent found nothing relevant. Populate
+   overstating certainty. A strong historical match can raise confidence;
+   the absence of one should not lower it on its own.
+3. Actively check whether all findings agree. Do not assume agreement —
+   look for timing mismatches, findings that don't corroborate each other,
+   or gaps where one agent found nothing relevant. Populate
    agents_in_agreement and contradicting_or_unclear_evidence honestly, even
    if that means reporting that everything lines up.
-4. Recommend concrete next steps an on-call engineer could take right now.
+4. If the historical findings identify a matching past incident, name it
+   explicitly in historical_precedent and explain how it relates. If no
+   relevant precedent was found, leave historical_precedent as an empty
+   string — do not invent a match that isn't there.
+5. Recommend concrete next steps an on-call engineer could take right now.
 
 Do not state the root cause as a proven fact. Frame it as the most likely
 explanation given current evidence.
@@ -72,6 +84,7 @@ explanation given current evidence.
 async def wait_for_rate_limit_window(callback_context):
     await asyncio.sleep(6)
     return None
+
 
 root_cause_agent = LlmAgent(
     name="root_cause_agent",

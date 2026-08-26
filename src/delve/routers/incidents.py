@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from delve.agents.investigation_service import run_investigation
 from delve.agents.triage_service import run_triage
 from delve.db import SessionLocal
+from delve.guardrails.input_guard import check_incident_input
 from delve.models.evidence import Evidence
 from delve.models.incident import Incident, IncidentStatus
 from delve.schemas.evidence import EvidenceRead
@@ -26,6 +27,8 @@ def get_db():
 
 @router.post("", response_model=IncidentRead, status_code=201)
 async def create_incident(payload: IncidentCreate, db: Session = Depends(get_db)):
+    check_incident_input(payload.title, payload.description)
+
     incident = Incident(title=payload.title, description=payload.description)
     db.add(incident)
     db.commit()
@@ -57,10 +60,11 @@ async def investigate_incident(incident_id: str, db: Session = Depends(get_db)):
             "log_findings": results["log_findings"],
             "metrics_findings": results["metrics_findings"],
             "deployment_findings": results["deployment_findings"],
+            "historical_findings": results["historical_findings"],
         }
         incident.root_cause_analysis = results["root_cause_analysis"]
 
-        for agent_key in ("log_findings", "metrics_findings", "deployment_findings"):
+        for agent_key in ("log_findings", "metrics_findings", "deployment_findings", "historical_findings"):
             finding = results[agent_key]
             if not finding:
                 continue
