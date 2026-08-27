@@ -1,10 +1,9 @@
 import asyncio
-from typing import List, Literal
-
-from pydantic import BaseModel, Field
+from typing import Literal
 
 from google.adk.agents import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
+from pydantic import BaseModel, Field
 
 
 class RootCauseAnalysis(BaseModel):
@@ -15,11 +14,11 @@ class RootCauseAnalysis(BaseModel):
     confidence: Literal["low", "medium", "high"] = Field(
         description="How strongly the combined evidence supports the hypothesis."
     )
-    supporting_evidence: List[str] = Field(
+    supporting_evidence: list[str] = Field(
         description="Specific facts drawn from the agents' findings that "
         "support the hypothesis. Quote or closely paraphrase the original data points."
     )
-    contradicting_or_unclear_evidence: List[str] = Field(
+    contradicting_or_unclear_evidence: list[str] = Field(
         default_factory=list,
         description="Anything in the findings that doesn't fit the hypothesis, "
         "is ambiguous, or where agents disagree. Empty list only if "
@@ -34,7 +33,7 @@ class RootCauseAnalysis(BaseModel):
         description="If a matching past incident was found, name it and briefly "
         "state how it relates. Empty string if no relevant precedent was found."
     )
-    recommended_next_steps: List[str] = Field(
+    recommended_next_steps: list[str] = Field(
         description="Concrete actions an on-call engineer should take next, "
         "e.g. rollback, specific config to check, dashboards to watch."
     )
@@ -83,7 +82,6 @@ explanation given current evidence.
 
 async def wait_for_rate_limit_window(callback_context):
     await asyncio.sleep(6)
-    return None
 
 
 root_cause_agent = LlmAgent(

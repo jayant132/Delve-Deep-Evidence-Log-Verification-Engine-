@@ -1,4 +1,5 @@
 import logging
+import time
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -11,6 +12,8 @@ from delve.guardrails.evidence_guard import check_evidence_grounding
 from delve.guardrails.input_guard import check_incident_input
 from delve.models.action import Action
 from delve.models.evidence import Evidence
+from delve.models.execution_log import ExecutionLog
+from delve.models.execution_log import ExecutionLog as _ExecLog
 from delve.models.incident import Incident, IncidentStatus
 from delve.schemas.action import ActionRead
 from delve.schemas.evidence import EvidenceRead
@@ -39,13 +42,17 @@ async def create_incident(payload: IncidentCreate, db: Session = Depends(get_db)
     db.refresh(incident)
 
     incident_text = f"Title: {incident.title}\nDescription: {incident.description}"
+    t0 = time.monotonic()
     try:
         assessment = await run_triage(incident_text)
         incident.triage_assessment = assessment.model_dump()
         incident.status = IncidentStatus.INVESTIGATING
+        db.add(ExecutionLog(incident_id=incident.id, step_name="triage", status="success", duration_seconds=time.monotonic() - t0))
         db.commit()
         db.refresh(incident)
-    except Exception:
+    except Exception as e:
+        db.add(ExecutionLog(incident_id=incident.id, step_name="triage", status="failed", duration_seconds=time.monotonic() - t0, error_message=str(e)))
+        db.commit()
         logger.exception("Triage failed for incident %s", incident.id)
 
     return incident
@@ -58,6 +65,7 @@ async def investigate_incident(incident_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Incident not found")
 
     incident_text = f"Title: {incident.title}\nDescription: {incident.description}"
+    t0 = time.monotonic()
     try:
         results = await run_investigation(incident_text)
         incident.investigation_findings = {
@@ -100,7 +108,11 @@ async def investigate_incident(incident_id: str, db: Session = Depends(get_db)):
         incident.status = IncidentStatus.AWAITING_APPROVAL
         db.commit()
         db.refresh(incident)
-    except Exception:
+        db.add(ExecutionLog(incident_id=incident.id, step_name="investigation", status="success", duration_seconds=time.monotonic() - t0))
+        db.commit()
+    except Exception as e:
+        db.add(ExecutionLog(incident_id=incident.id, step_name="investigation", status="failed", duration_seconds=time.monotonic() - t0, error_message=str(e)))
+        db.commit()
         logger.exception("Investigation failed for incident %s", incident.id)
 
     return incident
@@ -146,3 +158,9 @@ def approve_action(action_id: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(action)
     return action
+
+
+@router.get("/{incident_id}/logs")
+def list_execution_logs(incident_id: str, db: Session = Depends(get_db)):
+    logs = db.query(_ExecLog).filter(_ExecLog.incident_id == incident_id).all()
+    return [{"step": l.step_name, "status": l.status, "duration_s": round(l.duration_seconds, 2), "error": l.error_message} for l in logs]

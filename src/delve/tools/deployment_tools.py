@@ -16,12 +16,12 @@ def get_deployment_changes(service: str, hours_back: int = 24) -> list[dict]:
         author, and a summary of changes, ordered most-recent-first.
     """
     check_service_allowed(service)
-    latest = max(datetime.fromisoformat(d["timestamp"].replace("Z", "+00:00")) for d in DEPLOYMENTS)
+    latest = max(datetime.fromisoformat(d["timestamp"]) for d in DEPLOYMENTS)
     cutoff = latest.timestamp() - (hours_back * 3600)
 
     results = [
         d for d in DEPLOYMENTS
         if d["service"] == service
-        and datetime.fromisoformat(d["timestamp"].replace("Z", "+00:00")).timestamp() >= cutoff
+        and datetime.fromisoformat(d["timestamp"]).timestamp() >= cutoff
     ]
     return sorted(results, key=lambda d: d["timestamp"], reverse=True)

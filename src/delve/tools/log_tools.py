@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from delve.data.simulated_logs import LOGS
 from delve.guardrails.tool_guard import check_service_allowed
@@ -19,12 +19,12 @@ def search_logs(service: str, level: str = "ALL", minutes_back: int = 60) -> lis
     level_order = {"INFO": 0, "WARN": 1, "ERROR": 2}
     min_level = level_order.get(level, -1) if level != "ALL" else -1
 
-    latest = max(datetime.fromisoformat(l["timestamp"].replace("Z", "+00:00")) for l in LOGS)
+    latest = max(datetime.fromisoformat(l["timestamp"]) for l in LOGS)
     cutoff = latest.timestamp() - (minutes_back * 60)
 
     results = []
     for entry in LOGS:
-        entry_time = datetime.fromisoformat(entry["timestamp"].replace("Z", "+00:00"))
+        entry_time = datetime.fromisoformat(entry["timestamp"])
         if entry["service"] != service:
             continue
         if entry_time.timestamp() < cutoff:

@@ -1,4 +1,4 @@
-from delve.rag.ingest import get_chroma_collection, _model
+from delve.rag.ingest import _model, get_chroma_collection
 
 
 def search_historical_incidents(query: str, top_k: int = 3) -> list[dict]:

@@ -1,13 +1,12 @@
-from delve.db import Base
 import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Enum, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import JSON, DateTime, Enum, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
 
- 
+from delve.db import Base
+
 
 class IncidentStatus(str, enum.Enum):
     DETECTED = "detected"
@@ -34,12 +33,10 @@ class Incident(Base):
     investigation_findings: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     root_cause_analysis: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
-    investigation_findings: Mapped[dict | None] = mapped_column(JSON, nullable=True)
-    root_cause_analysis: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )

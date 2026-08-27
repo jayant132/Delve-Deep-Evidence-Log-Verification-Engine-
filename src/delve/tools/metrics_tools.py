@@ -18,13 +18,13 @@ def get_metrics(service: str, metric: str = "ALL", minutes_back: int = 60) -> li
         metric name, and value, ordered chronologically.
     """
     check_service_allowed(service)
-    latest = max(datetime.fromisoformat(m["timestamp"].replace("Z", "+00:00")) for m in METRICS)
+    latest = max(datetime.fromisoformat(m["timestamp"]) for m in METRICS)
     cutoff = latest.timestamp() - (minutes_back * 60)
 
     results = [
         m for m in METRICS
         if m["service"] == service
         and (metric == "ALL" or m["metric"] == metric)
-        and datetime.fromisoformat(m["timestamp"].replace("Z", "+00:00")).timestamp() >= cutoff
+        and datetime.fromisoformat(m["timestamp"]).timestamp() >= cutoff
     ]
     return sorted(results, key=lambda m: m["timestamp"])
