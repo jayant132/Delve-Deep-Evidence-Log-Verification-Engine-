@@ -27,4 +27,8 @@ jobs:
         run: uv run ruff check src/
 
       - name: Verify app imports cleanly
+        env:
+          DATABASE_URL: postgresql://fake:fake@localhost:5432/fake
+          REDIS_URL: redis://localhost:6379/0
+          GROQ_API_KEY: fake-key-for-ci
         run: uv run python -c "from delve.main import app; print('App imports successfully')"
