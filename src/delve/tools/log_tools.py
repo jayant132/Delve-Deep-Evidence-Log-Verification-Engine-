@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from delve.data.simulated_logs import LOGS
+from delve.guardrails.tool_guard import check_service_allowed
 
 
 def search_logs(service: str, level: str = "ALL", minutes_back: int = 60) -> list[dict]:
@@ -14,6 +15,7 @@ def search_logs(service: str, level: str = "ALL", minutes_back: int = 60) -> lis
     Returns:
         A list of matching log entries, each with timestamp, service, level, and message.
     """
+    check_service_allowed(service)
     level_order = {"INFO": 0, "WARN": 1, "ERROR": 2}
     min_level = level_order.get(level, -1) if level != "ALL" else -1
 

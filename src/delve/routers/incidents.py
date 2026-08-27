@@ -6,9 +6,13 @@ from sqlalchemy.orm import Session
 from delve.agents.investigation_service import run_investigation
 from delve.agents.triage_service import run_triage
 from delve.db import SessionLocal
+from delve.guardrails.action_guard import classify_action_risk
+from delve.guardrails.evidence_guard import check_evidence_grounding
 from delve.guardrails.input_guard import check_incident_input
+from delve.models.action import Action
 from delve.models.evidence import Evidence
 from delve.models.incident import Incident, IncidentStatus
+from delve.schemas.action import ActionRead
 from delve.schemas.evidence import EvidenceRead
 from delve.schemas.incident import IncidentCreate, IncidentRead
 
@@ -77,7 +81,23 @@ async def investigate_incident(incident_id: str, db: Session = Depends(get_db)):
                     content=fact,
                 ))
 
-        incident.status = IncidentStatus.HYPOTHESIS_FORMED
+        all_facts = []
+        for k in ("log_findings", "metrics_findings", "deployment_findings", "historical_findings"):
+            f = results.get(k)
+            if f:
+                all_facts.extend(f.get("observed_data", []))
+        flagged = check_evidence_grounding(incident.root_cause_analysis, all_facts)
+        if flagged:
+            logger.warning("Ungrounded evidence claims in incident %s: %s", incident.id, flagged)
+
+        for step in incident.root_cause_analysis.get("recommended_next_steps", []):
+            db.add(Action(
+                incident_id=incident.id,
+                description=step,
+                risk_level=classify_action_risk(step),
+            ))
+
+        incident.status = IncidentStatus.AWAITING_APPROVAL
         db.commit()
         db.refresh(incident)
     except Exception:
@@ -110,3 +130,19 @@ def list_evidence(incident_id: str, db: Session = Depends(get_db)):
         .order_by(Evidence.created_at)
         .all()
     )
+
+
+@router.get("/{incident_id}/actions", response_model=list[ActionRead])
+def list_actions(incident_id: str, db: Session = Depends(get_db)):
+    return db.query(Action).filter(Action.incident_id == incident_id).all()
+
+
+@router.post("/actions/{action_id}/approve", response_model=ActionRead)
+def approve_action(action_id: str, db: Session = Depends(get_db)):
+    action = db.query(Action).filter(Action.id == action_id).first()
+    if action is None:
+        raise HTTPException(status_code=404, detail="Action not found")
+    action.status = "approved_simulated_executed"
+    db.commit()
+    db.refresh(action)
+    return action

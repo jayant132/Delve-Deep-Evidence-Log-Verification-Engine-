@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from delve.data.simulated_deployments import DEPLOYMENTS
+from delve.guardrails.tool_guard import check_service_allowed
 
 
 def get_deployment_changes(service: str, hours_back: int = 24) -> list[dict]:
@@ -14,6 +15,7 @@ def get_deployment_changes(service: str, hours_back: int = 24) -> list[dict]:
         A list of matching deployments, each with timestamp, version, commit_sha, 
         author, and a summary of changes, ordered most-recent-first.
     """
+    check_service_allowed(service)
     latest = max(datetime.fromisoformat(d["timestamp"].replace("Z", "+00:00")) for d in DEPLOYMENTS)
     cutoff = latest.timestamp() - (hours_back * 3600)
 

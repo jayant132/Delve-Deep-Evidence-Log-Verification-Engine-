@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from delve.data.simulated_metrics import METRICS
+from delve.guardrails.tool_guard import check_service_allowed
 
 
 def get_metrics(service: str, metric: str = "ALL", minutes_back: int = 60) -> list[dict]:
@@ -16,6 +17,7 @@ def get_metrics(service: str, metric: str = "ALL", minutes_back: int = 60) -> li
         A list of matching metric data points, each with timestamp, service, 
         metric name, and value, ordered chronologically.
     """
+    check_service_allowed(service)
     latest = max(datetime.fromisoformat(m["timestamp"].replace("Z", "+00:00")) for m in METRICS)
     cutoff = latest.timestamp() - (minutes_back * 60)
 
