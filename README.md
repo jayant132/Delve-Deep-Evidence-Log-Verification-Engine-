@@ -1,4 +1,3 @@
-PLACEHOLDER_MARKER_FOR_FULL_REPLACE
 # DELVE — Deep Evidence & Log Verification Engine
 
 An AI-powered incident investigation platform. Give it a plain-English incident description; it dispatches specialized AI agents to pull real evidence from logs, metrics, deployments, and historical incidents in parallel, then synthesizes an evidence-grounded root cause hypothesis — never presenting a guess as a confirmed fact.
